@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TalyGrooming Chatbot</title>
+    <style>
+        /* Basic styling for chatbot container */
+        #chat-container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+        }
+        #chat-window {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-bottom: 20px;
+        }
+        #input-field{
+            width: 100%;
+            border: 1px solid #33333330;
+            border-radius: 25px;
+            height: 30px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            max-width: 70%;
+        }
+        .bot-message {
+            background-color: #f0f0f0;
+            text-align: left;
+            margin-right: auto;
+            color: #333;
+        }
+        .user-message {
+            background-color: #ffffff;
+            color: rgb(0, 0, 0);
+            text-align: right;
+            margin-left: auto;
+        }
+        .user-button {
+            display: inline-block;
+            padding: 10px;
+            margin: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: right;
+        }
+        .date-picker, .time-picker {
+            display: inline-block;
+            padding: 10px;
+            margin: 5px;
+        }
+        .radio-option {
+            display: inline-block;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <div id="chat-window"></div>
+    <input type="date" id="date-picker" class="date-picker" style="display:none;" onchange="sendDate(this.value)">
+    <select id="time-picker" class="time-picker" style="display:none;" onchange="sendTimeSlot(this.value)"></select>
+    <input type="text" id="input-field" placeholder="Enter text" style="display:none;" onkeypress="sendTextInput(event)">
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        startChat();
+    });
+
+    function startChat() {
+        fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message: "start" })
+        })
+        .then(response => response.json())
+        .then(data => displayBotMessage(data));
+    }
+
+    function displayBotMessage(data) {
+        const chatWindow = document.getElementById("chat-window");
+
+        // Display bot message
+        const botMessage = document.createElement("div");
+        botMessage.className = "message bot-message";
+        botMessage.innerText = data.message;
+        chatWindow.appendChild(botMessage);
+
+        // Display options if available
+        if (data.buttons) {
+            data.buttons.forEach(buttonText => {
+                const button = document.createElement("button");
+                button.className = "user-button";
+                button.innerText = buttonText;
+                button.onclick = () => sendUserResponse(buttonText);
+                // button.disabled=true;
+                chatWindow.appendChild(button);
+            });
+        }
+
+        // Display date picker if required
+        if (data.date_picker) {
+            const datePicker = document.getElementById("date-picker");
+            datePicker.style.display = "block";
+            datePicker.value = "";
+        }
+
+        // Populate and display time slot dropdown if required
+        if (data.time_slots) {
+            const timePicker = document.getElementById("time-picker");
+            timePicker.style.display = "block";
+            timePicker.innerHTML = "<option value=''>Select a time slot</option>";
+            data.time_slots.forEach(slot => {
+                const option = document.createElement("option");
+                option.value = slot;
+                option.innerText = slot;
+                timePicker.appendChild(option);
+            });
+        }
+
+        // Display radio options if available
+        if (data.radio_options) {
+            data.radio_options.forEach(option => {
+                const radioButton = document.createElement("button");
+                radioButton.className = "user-button radio-option";
+                radioButton.innerText = option;
+                radioButton.onclick = () => sendRadioOption(option);
+                chatWindow.appendChild(radioButton);
+            });
+        }
+
+        // Display input field if required
+        if (data.input_field) {
+            const inputField = document.getElementById("input-field");
+            inputField.style.display = "block";
+            inputField.placeholder = `Enter your ${data.input_field.replace('_', ' ')}`;
+            inputField.dataset.field = data.input_field;
+        }
+
+        // Scroll to the latest message
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function displayUserMessage(message) {
+        const chatWindow = document.getElementById("chat-window");
+
+        // Display user message on the right side
+        const userMessage = document.createElement("div");
+        userMessage.className = "message user-message";
+        userMessage.innerText = message;
+        chatWindow.appendChild(userMessage);
+
+        // Scroll to the latest message
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function sendUserResponse(message, botMessage) {
+        // Hide inputs
+        document.getElementById("date-picker").style.display = "none";
+        document.getElementById("time-picker").style.display = "none";
+        document.querySelectorAll(".user-button, .radio-option").forEach(button => button.disabled = true);
+
+        displayUserMessage(message);
+
+        fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message })
+        })
+        .then(response => response.json())
+        .then(data => displayBotMessage(data));
+    }
+
+    function sendDate(date) {
+        document.getElementById("date-picker").style.display = "none";
+        displayUserMessage("Date: " + date);
+
+        fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message: "selected date: " + date })
+        })
+        .then(response => response.json())
+        .then(data => displayBotMessage(data));
+    }
+
+    function sendTimeSlot(timeSlot) {
+        if (timeSlot) {
+            document.getElementById("time-picker").style.display = "none";
+            displayUserMessage("Time slot: " + timeSlot);
+
+            fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: timeSlot })
+            })
+            .then(response => response.json())
+            .then(data => displayBotMessage(data));
+        }
+    }
+
+    function sendRadioOption(option) {
+        displayUserMessage(option);
+
+        document.querySelectorAll(".user-button, .radio-option").forEach(button => button.disabled = true);
+
+        fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: option })
+        })
+        .then(response => response.json())
+        .then(data => displayBotMessage(data));
+    }
+
+    function sendTextInput(event) {
+    if (event.key === "Enter") {
+        const inputField = document.getElementById("input-field");
+        const fieldName = inputField.dataset.field;
+        const userInput = inputField.value;
+        displayUserMessage(userInput);
+        inputField.value = "";
+        inputField.style.display = "none";
+
+        // Example payload with necessary fields
+        fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                message: `${fieldName}:${userInput}`, 
+                pet_name: "Buddy",   // Replace with actual value from input
+                pet_breed: "Labrador", // Replace with actual value from input
+                pet_size: "Large"    // Replace with actual value from input
+            })
+        })
+        .then(response => response.json())
+        .then(data => displayBotMessage(data));
+    }
+    }
+</script>
+
+</body>
+</html>
