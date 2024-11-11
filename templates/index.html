@@ -13,13 +13,16 @@
             border: 1px solid #ccc;
             border-radius: 10px;
             box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
-            background-color: #f7f7f7;
+            background-color: #ffffff;
             font-family: Arial, sans-serif;
         }
         #chat-window {
             max-height: 500px;
             overflow-y: auto;
             padding-bottom: 20px;
+        }
+        #chat-window::-webkit-scrollbar{
+            width: 0;
         }
         #input-field{
             width: 100%;
@@ -41,7 +44,7 @@
         }
         .user-message {
             background-color: #ffffff;
-            color: rgb(0, 0, 0);
+            color: #333;
             text-align: right;
             margin-left: auto;
         }
@@ -63,7 +66,7 @@
         }
         .radio-option {
             display: inline-block;
-            margin: 5px 0;
+            margin: 5px;
         }
     </style>
 </head>

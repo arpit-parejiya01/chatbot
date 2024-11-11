@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
+from flask_cors import CORS
+CORS(app, origins=["*","192.168.2.77"])
 
 available_time_slots = [
     "8:00 AM to 9:00 AM",
@@ -70,5 +72,13 @@ def chat():
     
     return jsonify(response)
 
+@app.route("/embed.js")
+def embed():
+    return render_template("embed.js")
+
+# Ensure your Flask app allows CORS for loading the script on different domains
+
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
