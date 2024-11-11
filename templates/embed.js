@@ -8,6 +8,6 @@ document.addEventListener("DOMContentLoaded", function () {
     iframe.style.bottom = "20px";
     iframe.style.right = "20px";
     iframe.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-    iframe.src = "http://192.168.2.77:5000"; // Use the full URL to your Flask app
+    iframe.src = "http://192.168.2.52:5000"; // Use the full URL to your Flask app
     document.body.appendChild(iframe);
 });

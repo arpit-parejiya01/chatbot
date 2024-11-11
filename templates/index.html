@@ -21,10 +21,10 @@
             overflow-y: auto;
             padding-bottom: 20px;
         }
-        #chat-window::-webkit-scrollbar{
+        #chat-window::-webkit-scrollbar {
             width: 0;
         }
-        #input-field{
+        #input-field {
             width: 100%;
             border: 1px solid #33333330;
             border-radius: 25px;
@@ -59,10 +59,14 @@
             cursor: pointer;
             text-align: right;
         }
-        .date-picker, .time-picker {
+        .date-picker, .time-picker, .country, .states{
             display: inline-block;
             padding: 10px;
             margin: 5px;
+        }
+        #phone_number_field {
+            display: none;
+            margin-top: 10px;
         }
         .radio-option {
             display: inline-block;
@@ -73,16 +77,25 @@
 <body>
 
 <div id="chat-container">
-    <div id="chat-window"></div>
+    <div id="chat-window">
+        <div style="text-align: center; font-size: 25px; margin-bottom: 10px;"><b>TalyGrooming</b></div>
+    </div>
     <input type="date" id="date-picker" class="date-picker" style="display:none;" onchange="sendDate(this.value)">
     <select id="time-picker" class="time-picker" style="display:none;" onchange="sendTimeSlot(this.value)"></select>
+    <select id="country" class="country" style="display:none;" onchange="sendCountry(this.value)"></select>
+    <select id="states" class="states" style="display:none;" onchange="sendStates(this.value)"></select>
     <input type="text" id="input-field" placeholder="Enter text" style="display:none;" onkeypress="sendTextInput(event)">
+    <div id="phone_number_field">
+        <input type="text" id="phone_number" placeholder="Enter 10 digit phone number" maxlength="10" pattern="\d{10}">
+    </div>
 </div>
 
 <script>
+    const phoneNumberField = document.getElementById('phone_number_field');
     document.addEventListener("DOMContentLoaded", () => {
         startChat();
     });
+  
 
     function startChat() {
         fetch("/chat", {
@@ -112,7 +125,6 @@
                 button.className = "user-button";
                 button.innerText = buttonText;
                 button.onclick = () => sendUserResponse(buttonText);
-                // button.disabled=true;
                 chatWindow.appendChild(button);
             });
         }
@@ -136,6 +148,43 @@
                 timePicker.appendChild(option);
             });
         }
+
+        // country
+        if (data.country) {
+            const country = document.getElementById("country");
+            country.style.display = "block";
+            country.innerHTML = "<option value=''>Select a country</option>";
+            data.country.forEach(slot => {
+                const option = document.createElement("option");
+                option.value = slot;
+                option.innerText = slot;
+                country.appendChild(option);
+            });
+        }
+
+        //state
+        if (data.states) {
+            const states= document.getElementById("states");
+            states.id = "states";
+            states.style.display = "block";
+            states.innerHTML = "<option value=''>Select a state</option>";
+            data.states.forEach(state => {
+                const option = document.createElement("option");
+                option.value = state;
+                option.innerText = state;
+                states.appendChild(option);
+            });
+            // chatWindow.appendChild(states);
+        }
+
+        //phone number
+        if (data.input_field) {
+                if (data.input_field === "phone_number") {
+                    phoneNumberField.style.display = 'block';
+                    botMessage.innerHTML = "Please enter a valid 10-digit phone number.";
+                }
+            }
+    
 
         // Display radio options if available
         if (data.radio_options) {
@@ -173,10 +222,12 @@
         chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
-    function sendUserResponse(message, botMessage) {
+    function sendUserResponse(message) {
         // Hide inputs
         document.getElementById("date-picker").style.display = "none";
         document.getElementById("time-picker").style.display = "none";
+        document.getElementById("country").style.display = "none";
+        document.getElementById("states").style.display = "none";
         document.querySelectorAll(".user-button, .radio-option").forEach(button => button.disabled = true);
 
         displayUserMessage(message);
@@ -222,6 +273,36 @@
         }
     }
 
+    function sendCountry(country) {
+        if (country) {
+            document.getElementById("country").style.display = "none";
+            displayUserMessage("country: " + country);
+
+            fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: country })
+            })
+            .then(response => response.json())
+            .then(data => displayBotMessage(data));
+        }
+    }
+
+    function sendStates(states) {
+        if (states) {
+            document.getElementById("states").style.display = "none";
+            displayUserMessage("states: " + states);
+
+            fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: states })
+            })
+            .then(response => response.json())
+            .then(data => displayBotMessage(data));
+        }
+    }
+
     function sendRadioOption(option) {
         displayUserMessage(option);
 
@@ -237,28 +318,22 @@
     }
 
     function sendTextInput(event) {
-    if (event.key === "Enter") {
-        const inputField = document.getElementById("input-field");
-        const fieldName = inputField.dataset.field;
-        const userInput = inputField.value;
-        displayUserMessage(userInput);
-        inputField.value = "";
-        inputField.style.display = "none";
+        if (event.key === "Enter") {
+            const inputField = document.getElementById("input-field");
+            const fieldName = inputField.dataset.field;
+            const userInput = inputField.value;
+            displayUserMessage(userInput);
+            inputField.value = "";
+            inputField.style.display = "none";
 
-        // Example payload with necessary fields
-        fetch("/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                message: `${fieldName}:${userInput}`, 
-                pet_name: "Buddy",   // Replace with actual value from input
-                pet_breed: "Labrador", // Replace with actual value from input
-                pet_size: "Large"    // Replace with actual value from input
+            fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: `${fieldName}:${userInput}` })
             })
-        })
-        .then(response => response.json())
-        .then(data => displayBotMessage(data));
-    }
+            .then(response => response.json())
+            .then(data => displayBotMessage(data));
+        }
     }
 </script>
 

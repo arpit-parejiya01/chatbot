@@ -12,6 +12,21 @@ available_time_slots = [
     "5:00 PM to 6:00 PM"
 ]
 
+country = [
+    "India",
+    "America",
+    "Canada",
+    "England"
+]
+
+# Country to states mapping
+states = {
+    "India": ["Maharashtra", "Karnataka", "Delhi", "Uttar Pradesh"],
+    "America": ["California", "Texas", "New York", "Florida"],
+    "Canada": ["Ontario", "Quebec", "British Columbia", "Alberta"],
+    "England": ["England", "Scotland", "Wales", "Northern Ireland"]
+}
+
 data = {}
 
 @app.route("/")
@@ -25,7 +40,7 @@ def chat():
     # Initial message
     if user_message == "start":
         response = {
-            "message": "Hi there! 👋 Welcome to 'TalyGrooming', I am here to assist you.",
+            "message": "Hi there! 👋 Welcome to 'TalyGrooming', I am here to assist you with your bookings with TalyGrooming.",
             "options": ["How can I help you today? Are you interested in booking an appointment for your pet grooming?"],
             "buttons": ["Yes, I am interested", "No, I am not interested"]
         }
@@ -55,30 +70,73 @@ def chat():
         data['pet_name'] = user_message.split(':')[-1].strip()
         response = {"message": "Thank you! What is your pet's breed?", "input_field": "pet_breed"}
     elif "pet_breed:" in user_message:
+        data['pet_breed'] = user_message.split(':')[-1].strip()
         response = {
             "message": "What is the size of your dog?",
             "radio_options": ["1 to 10 lbs", "11 to 30 lbs", "31 to 60 lbs", "61 to 80 lbs", "81+ lbs"]
         }
-        data['pet_breed'] = user_message.split(':')[-1].strip()
     elif user_message in ["1 to 10 lbs", "11 to 30 lbs", "31 to 60 lbs", "61 to 80 lbs", "81+ lbs"]:
         data['size_of_dog'] = user_message
-        print(data)
         response = {
-            "message": f"Thank you for providing all the information. Here are your booking details:\n"
-                       f"Service: {user_message}\nPet Name: {data['pet_name']}\nBreed: {data['pet_breed']}\nSize: {data['size_of_dog']}\n Time Slot: {data['Time Slot']}\nDate of Appontment: {data['Date']}"
+            "message": "Which of these best describes your pet's coat type?",
+            "radio_options": ["Short Coat Breeds", "Wire Coat Breeds", "Soft Coat Breeds", "Double Coat Breeds"]
         }
-
-    
-    
+    elif user_message in ["Short Coat Breeds", "Wire Coat Breeds", "Soft Coat Breeds", "Double Coat Breeds"]:
+        data['coat_type'] = user_message
+        response = {
+            "message": "Does your dog need any of these extra services?",
+            "radio_options": ["Dematting $1/min", "Ear Plucking ($10)", "Flea Preventative Shampoo ($10)", "Intensive Coat Hydration ($10)", "No"]
+        }
+    elif user_message in ["Dematting $1/min", "Ear Plucking ($10)", "Flea Preventative Shampoo ($10)", "Intensive Coat Hydration ($10)", "No"]:
+        data['extra_service'] = user_message
+        response = {
+            "message": "Please select country for service",
+            "country": country
+        }
+    elif user_message in country:
+        data['country'] = user_message
+        response = {
+            "message": "Please select your State:",
+            "states": states.get(user_message, [])
+        }
+    elif user_message in states.get(data.get('country', ''), []):
+        data['state'] = user_message
+        response = {
+            "message": "Please provide your service address:",
+            "input_field": "service_address"
+        }
+    elif "service_address:" in user_message:
+        data['service_address'] = user_message.split(':')[-1].strip()
+        response = {
+            "message": f"Thank you! You've provided your service address: {data['service_address']}. Please provide your phone number:",
+            "input_field": "phone_number"
+        }
+    elif "phone_number:" in user_message:
+        phone_number = user_message.split(":")[-1].strip()
+        if len(phone_number) == 10 and phone_number.isdigit():
+            data['phone_number'] = phone_number
+            response = {
+                "message": f"Thank you! Your phone number is {data['phone_number']}. Here are your booking details:\n"
+                           f"Date: {data['Date']}\n"
+                           f"Time Slot: {data['Time Slot']}\n"
+                           f"Service: {data['Service']}\n"
+                           f"Pet Name: {data['pet_name']}\n"
+                           f"Breed: {data['pet_breed']}\n"
+                           f"Size: {data['size_of_dog']}\n"
+                           f"Coat Type: {data['coat_type']}\n"
+                           f"Extra Service: {data['extra_service']}\n"
+                           f"Country: {data['country']}\n"
+                           f"State: {data['state']}\n"
+                           f"Service Address: {data['service_address']}\n"
+                           f"Phone Number: {data['phone_number']}"
+            }
+        else:
+            response = {"message": "Please enter the correct number. It should be 10 digits."}
     return jsonify(response)
 
 @app.route("/embed.js")
 def embed():
     return render_template("embed.js")
 
-# Ensure your Flask app allows CORS for loading the script on different domains
-
-
-
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
