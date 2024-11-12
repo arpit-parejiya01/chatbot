@@ -48,6 +48,15 @@
             text-align: right;
             margin-left: auto;
         }
+
+          #next-button {
+            padding: 5px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
         .user-button {
             display: inline-block;
             padding: 10px;
@@ -64,9 +73,13 @@
             padding: 10px;
             margin: 5px;
         }
-        #phone_number_field {
+        .phone-input {
             display: none;
             margin-top: 10px;
+            width: 100%;
+            border: 1px solid #33333330;
+            border-radius: 25px;
+            height: 30px;
         }
         .radio-option {
             display: inline-block;
@@ -81,21 +94,48 @@
         <div style="text-align: center; font-size: 25px; margin-bottom: 10px;"><b>TalyGrooming</b></div>
     </div>
     <input type="date" id="date-picker" class="date-picker" style="display:none;" onchange="sendDate(this.value)">
+    <input type="text" id="phone-input" placeholder="Enter phone number" style="display: none;" onkeypress="handlePhoneInput(event)">
     <select id="time-picker" class="time-picker" style="display:none;" onchange="sendTimeSlot(this.value)"></select>
     <select id="country" class="country" style="display:none;" onchange="sendCountry(this.value)"></select>
     <select id="states" class="states" style="display:none;" onchange="sendStates(this.value)"></select>
     <input type="text" id="input-field" placeholder="Enter text" style="display:none;" onkeypress="sendTextInput(event)">
-    <div id="phone_number_field">
-        <input type="text" id="phone_number" placeholder="Enter 10 digit phone number" maxlength="10" pattern="\d{10}">
-    </div>
+    
 </div>
 
 <script>
-    const phoneNumberField = document.getElementById('phone_number_field');
+    
     document.addEventListener("DOMContentLoaded", () => {
         startChat();
     });
-  
+
+    const phoneNumberField = document.getElementById('phone_number_field');
+    const phoneNumberInput = document.getElementById('phone_number');
+
+    function inputFunc (event) {
+        event.preventDefault();
+        let userInput = inputField.value;
+        inputField.value = '';
+        sendMessage(userInput);
+    } 
+
+    inputField.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            inputFunc(event)
+        }
+    });
+
+    function handlePhoneInput(event) {
+        if (event.key === "Enter") {
+            const phoneNumber = event.target.value;
+            if (/^\d{10}$/.test(phoneNumber)) {
+                sendMessage("phone_number:" + phoneNumber);
+                event.target.value = '';  // Clear input field
+            } else {
+                alert("Please enter a valid 10-digit phone number.");
+                event.target.focus();
+            }
+        }
+    }
 
     function startChat() {
         fetch("/chat", {
@@ -118,6 +158,14 @@
         botMessage.innerText = data.message;
         chatWindow.appendChild(botMessage);
 
+        const phoneInput = document.getElementById("phone-input");
+        if (data.show_phone_input) {
+            phoneInput.style.display = "block";
+            phoneInput.focus();
+        } else {
+            phoneInput.style.display = "none";
+        }
+
         // Display options if available
         if (data.buttons) {
             data.buttons.forEach(buttonText => {
@@ -127,6 +175,12 @@
                 button.onclick = () => sendUserResponse(buttonText);
                 chatWindow.appendChild(button);
             });
+        }
+
+        //phone number
+        if (data.phone_number_input) {
+            const phoneInput = document.getElementById("phone-number");
+            phoneInput.style.display = "block";
         }
 
         // Display date picker if required
@@ -177,15 +231,6 @@
             // chatWindow.appendChild(states);
         }
 
-        //phone number
-        if (data.input_field) {
-                if (data.input_field === "phone_number") {
-                    phoneNumberField.style.display = 'block';
-                    botMessage.innerHTML = "Please enter a valid 10-digit phone number.";
-                }
-            }
-    
-
         // Display radio options if available
         if (data.radio_options) {
             data.radio_options.forEach(option => {
@@ -199,10 +244,26 @@
 
         // Display input field if required
         if (data.input_field) {
-            const inputField = document.getElementById("input-field");
+            let div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.width = '100%';
+
+            let inputField = document.getElementById("input-field");
             inputField.style.display = "block";
             inputField.placeholder = `Enter your ${data.input_field.replace('_', ' ')}`;
             inputField.dataset.field = data.input_field;
+            if(!document.querySelector('.btn')) {
+                let button = document.createElement('button');
+                button.innerText = 'Click Me'; 
+                button.classList.add('btn')
+                div.appendChild(button); 
+                button.addEventListener('click' , (e) => {
+                    inputFunc(e)
+                })
+            }
+            div.appendChild(inputField);
+            document.getElementById('chat-container').appendChild(div);
         }
 
         // Scroll to the latest message
@@ -302,6 +363,20 @@
             .then(data => displayBotMessage(data));
         }
     }
+
+    // function validatePhoneNumber() {
+    //     const phoneInput = document.getElementById("phone-number");
+    //     const errorMessage = document.getElementById("error-message");
+    //     const phoneValue = phoneInput.value;
+
+    //     // Check if the phone number is valid (10 digits)
+    //     if (phoneValue.length === 10 && /^[0-9]+$/.test(phoneValue)) {
+    //         errorMessage.style.display = "none";
+    //     } else {
+    //         errorMessage.innerText = "Please enter the correct number.";
+    //         errorMessage.style.display = "block";
+    //     }
+    // }
 
     function sendRadioOption(option) {
         displayUserMessage(option);
